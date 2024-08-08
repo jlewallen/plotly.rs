@@ -370,6 +370,18 @@ impl RangeSelector {
 
 #[serde_with::skip_serializing_none]
 #[derive(Serialize, Debug, Clone, FieldSetter)]
+pub struct RangeBreak {
+    bounds: Option<Vec<String>>,
+}
+
+impl RangeBreak {
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+#[serde_with::skip_serializing_none]
+#[derive(Serialize, Debug, Clone, FieldSetter)]
 pub struct ColorAxis {
     cauto: Option<bool>,
     cmin: Option<f64>,
@@ -539,6 +551,8 @@ pub struct Axis {
     #[serde(rename = "rangeselector")]
     range_selector: Option<RangeSelector>,
     calendar: Option<Calendar>,
+    #[serde(rename = "rangebreaks")]
+    range_breaks: Option<Vec<RangeBreak>>,
 }
 
 impl Axis {
