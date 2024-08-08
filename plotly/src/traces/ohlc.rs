@@ -73,6 +73,10 @@ where
     visible: Option<Visible>,
     #[serde(rename = "xcalendar")]
     x_calendar: Option<Calendar>,
+    #[serde(rename = "xaxis")]
+    x_axis: Option<String>,
+    #[serde(rename = "yaxis")]
+    y_axis: Option<String>,
 }
 
 impl<X, O> Ohlc<X, O>
