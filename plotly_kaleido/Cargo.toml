@@ -20,6 +20,7 @@ serde_json = "1.0.73"
 base64 = "0.22"
 dunce = "1.0.2"
 directories = ">=4, <6"
+tracing = "0.1.40"
 
 [build-dependencies]
 zip = "2.1"

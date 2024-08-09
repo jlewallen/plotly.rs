@@ -153,31 +153,38 @@ impl Kaleido {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .spawn()
-            .expect("failed to spawn Kaleido binary");
+            .spawn()?;
+
+        tracing::debug!("sending chart");
 
         {
             let plot_data = PlotData::new(plotly_data, format, width, height, scale).to_json();
-            let mut process_stdin = process.stdin.take().unwrap();
-            process_stdin
-                .write_all(plot_data.as_bytes())
-                .expect("couldn't write to Kaleido stdin");
+            let mut process_stdin = process.stdin.take().expect("taking stdin");
+            process_stdin.write_all(plot_data.as_bytes())?;
             process_stdin.flush()?;
         }
 
-        let output_lines = BufReader::new(process.stdout.take().unwrap()).lines();
+        tracing::debug!("reading");
+
+        let output_lines = BufReader::new(process.stdout.take().expect("taking stdout")).lines();
         for line in output_lines.map_while(Result::ok) {
-            let res = KaleidoResult::from(line.as_str());
-            if let Some(image_data) = res.result {
+            let mut res = KaleidoResult::from(line.as_str());
+            if let Some(image_data) = res.result.take() {
+                tracing::debug!("got {} {:?}", image_data.len(), res);
                 let data: Vec<u8> = match format {
                     "svg" | "eps" => image_data.as_bytes().to_vec(),
-                    _ => general_purpose::STANDARD.decode(image_data).unwrap(),
+                    _ => general_purpose::STANDARD.decode(image_data)?,
                 };
+                tracing::debug!("writing {:?}", dst);
                 let mut file = File::create(dst.as_path())?;
                 file.write_all(&data)?;
                 file.flush()?;
+            } else {
+                tracing::debug!("got {:?}", res);
             }
         }
+
+        tracing::debug!("waiting on process");
 
         process.wait()?;
 
