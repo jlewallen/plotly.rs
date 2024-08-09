@@ -143,6 +143,7 @@ impl Kaleido {
             .args([
                 "plotly",
                 "--disable-gpu",
+                "--no-sandbox",
                 "--allow-file-access-from-files",
                 "--disable-breakpad",
                 "--disable-dev-shm-usage",
