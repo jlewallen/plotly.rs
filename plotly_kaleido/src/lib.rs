@@ -179,6 +179,8 @@ impl Kaleido {
             }
         }
 
+        process.wait()?;
+
         Ok(())
     }
 }
