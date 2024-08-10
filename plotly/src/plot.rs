@@ -400,23 +400,23 @@ impl Plot {
     #[cfg(feature = "kaleido")]
     pub fn write_image<P: AsRef<Path>>(
         &self,
-        filename: P,
+        filename: Option<P>,
         format: ImageFormat,
         width: usize,
         height: usize,
         scale: f64,
-    ) {
+    ) -> Option<Vec<u8>> {
         let kaleido = plotly_kaleido::Kaleido::new();
         kaleido
             .save(
-                filename.as_ref(),
+                filename.as_ref().map(|p| p.as_ref()),
                 &serde_json::to_value(self).unwrap(),
                 &format.to_string(),
                 width,
                 height,
                 scale,
             )
-            .unwrap_or_else(|_| panic!("failed to export plot to {:?}", filename.as_ref()));
+            .expect("failed to export plot")
     }
 
     fn render(&self) -> String {

@@ -124,16 +124,13 @@ impl Kaleido {
 
     pub fn save(
         &self,
-        dst: &Path,
+        dst: Option<&Path>,
         plotly_data: &Value,
         format: &str,
         width: usize,
         height: usize,
         scale: f64,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut dst = PathBuf::from(dst);
-        dst.set_extension(format);
-
+    ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
         let p = self.cmd_path.as_path();
         let p = p.to_str().unwrap();
         let p = String::from(p);
@@ -166,6 +163,7 @@ impl Kaleido {
 
         tracing::debug!("reading");
 
+        let mut returning: Option<Vec<u8>> = None;
         let output_lines = BufReader::new(process.stdout.take().expect("taking stdout")).lines();
         for line in output_lines.map_while(Result::ok) {
             let mut res = KaleidoResult::from(line.as_str());
@@ -175,10 +173,16 @@ impl Kaleido {
                     "svg" | "eps" => image_data.as_bytes().to_vec(),
                     _ => general_purpose::STANDARD.decode(image_data)?,
                 };
-                tracing::debug!("writing {:?}", dst);
-                let mut file = File::create(dst.as_path())?;
-                file.write_all(&data)?;
-                file.flush()?;
+                if let Some(dst) = dst {
+                    let mut dst = PathBuf::from(dst);
+                    dst.set_extension(format);
+                    tracing::debug!("writing {:?}", dst);
+                    let mut file = File::create(dst.as_path())?;
+                    file.write_all(&data)?;
+                    file.flush()?;
+                } else {
+                    returning = Some(data);
+                }
             } else {
                 tracing::debug!("got {:?}", res);
             }
@@ -188,7 +192,7 @@ impl Kaleido {
 
         process.wait()?;
 
-        Ok(())
+        Ok(returning)
     }
 }
 
@@ -256,7 +260,7 @@ mod tests {
         let test_plot = create_test_plot();
         let k = Kaleido::new();
         let dst = PathBuf::from("example.png");
-        let r = k.save(dst.as_path(), &test_plot, "png", 1200, 900, 4.5);
+        let r = k.save(Some(dst.as_path()), &test_plot, "png", 1200, 900, 4.5);
         assert!(r.is_ok());
         assert!(std::fs::remove_file(dst.as_path()).is_ok());
     }
@@ -268,7 +272,7 @@ mod tests {
         let test_plot = create_test_plot();
         let k = Kaleido::new();
         let dst = PathBuf::from("example.jpeg");
-        let r = k.save(dst.as_path(), &test_plot, "jpeg", 1200, 900, 4.5);
+        let r = k.save(Some(dst.as_path()), &test_plot, "jpeg", 1200, 900, 4.5);
         assert!(r.is_ok());
         assert!(std::fs::remove_file(dst.as_path()).is_ok());
     }
@@ -280,7 +284,7 @@ mod tests {
         let test_plot = create_test_plot();
         let k = Kaleido::new();
         let dst = PathBuf::from("example.webp");
-        let r = k.save(dst.as_path(), &test_plot, "webp", 1200, 900, 4.5);
+        let r = k.save(Some(dst.as_path()), &test_plot, "webp", 1200, 900, 4.5);
         assert!(r.is_ok());
         assert!(std::fs::remove_file(dst.as_path()).is_ok());
     }
@@ -292,7 +296,7 @@ mod tests {
         let test_plot = create_test_plot();
         let k = Kaleido::new();
         let dst = PathBuf::from("example.svg");
-        let r = k.save(dst.as_path(), &test_plot, "svg", 1200, 900, 4.5);
+        let r = k.save(Some(dst.as_path()), &test_plot, "svg", 1200, 900, 4.5);
         assert!(r.is_ok());
         assert!(std::fs::remove_file(dst.as_path()).is_ok());
     }
@@ -304,7 +308,7 @@ mod tests {
         let test_plot = create_test_plot();
         let k = Kaleido::new();
         let dst = PathBuf::from("example.pdf");
-        let r = k.save(dst.as_path(), &test_plot, "pdf", 1200, 900, 4.5);
+        let r = k.save(Some(dst.as_path()), &test_plot, "pdf", 1200, 900, 4.5);
         assert!(r.is_ok());
         assert!(std::fs::remove_file(dst.as_path()).is_ok());
     }
@@ -316,7 +320,7 @@ mod tests {
         let test_plot = create_test_plot();
         let k = Kaleido::new();
         let dst = PathBuf::from("example.eps");
-        let r = k.save(dst.as_path(), &test_plot, "eps", 1200, 900, 4.5);
+        let r = k.save(Some(dst.as_path()), &test_plot, "eps", 1200, 900, 4.5);
         assert!(r.is_ok());
         assert!(std::fs::remove_file(dst.as_path()).is_ok());
     }
