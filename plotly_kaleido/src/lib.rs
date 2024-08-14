@@ -154,6 +154,11 @@ impl Kaleido {
 
         tracing::debug!("sending chart");
 
+        let mut output_lines =
+            BufReader::new(process.stdout.take().expect("taking stdout")).lines();
+
+        tracing::debug!("{:?}", output_lines.next());
+
         {
             let plot_data = PlotData::new(plotly_data, format, width, height, scale).to_json();
             let mut process_stdin = process.stdin.take().expect("taking stdin");
@@ -164,7 +169,6 @@ impl Kaleido {
         tracing::debug!("reading");
 
         let mut returning: Option<Vec<u8>> = None;
-        let output_lines = BufReader::new(process.stdout.take().expect("taking stdout")).lines();
         for line in output_lines.map_while(Result::ok) {
             let mut res = KaleidoResult::from(line.as_str());
             if let Some(image_data) = res.result.take() {
@@ -190,7 +194,10 @@ impl Kaleido {
 
         tracing::debug!("waiting on process");
 
-        process.wait()?;
+        let s = process.wait()?;
+
+        tracing::debug!("done {:?}", s);
+        tracing::debug!("done {:?}", s.success());
 
         Ok(returning)
     }
