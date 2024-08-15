@@ -154,6 +154,7 @@ impl Kaleido {
 
         let mut returning: Option<Vec<u8>> = None;
         {
+            let mut _err = process.stderr.take().expect("taking stderr");
             let mut output_lines =
                 BufReader::new(process.stdout.take().expect("taking stdout")).lines();
 
