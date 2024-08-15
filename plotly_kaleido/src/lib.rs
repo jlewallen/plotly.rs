@@ -198,8 +198,9 @@ impl Kaleido {
 
         let s = process.wait()?;
 
-        tracing::debug!("done {:?}", s);
-        tracing::debug!("done {:?}", s.success());
+        tracing::debug!("done {:?}, killing", s);
+
+        process.kill()?;
 
         Ok(returning)
     }
