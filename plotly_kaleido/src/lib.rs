@@ -195,13 +195,15 @@ impl Kaleido {
             }
         }
 
-        tracing::debug!("waiting on process");
+        tracing::debug!("kill");
+
+        let _ = process.kill()?;
+
+        tracing::debug!("wait");
 
         let s = process.wait()?;
 
-        tracing::debug!("done {:?}, killing", s);
-
-        process.kill()?;
+        tracing::debug!("done {:?}", s);
 
         Ok(returning)
     }
