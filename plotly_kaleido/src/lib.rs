@@ -184,6 +184,7 @@ impl Kaleido {
                     let mut file = File::create(dst.as_path())?;
                     file.write_all(&data)?;
                     file.flush()?;
+                    break;
                 } else {
                     returning = Some(data);
                 }
