@@ -152,44 +152,45 @@ impl Kaleido {
             .stderr(Stdio::piped())
             .spawn()?;
 
-        tracing::debug!("sending chart");
-
-        let mut output_lines =
-            BufReader::new(process.stdout.take().expect("taking stdout")).lines();
-
-        tracing::debug!("{:?}", output_lines.next());
-
-        {
-            let plot_data = PlotData::new(plotly_data, format, width, height, scale).to_json();
-            let mut process_stdin = process.stdin.take().expect("taking stdin");
-            process_stdin.write_all(plot_data.as_bytes())?;
-            process_stdin.flush()?;
-        }
-
-        tracing::debug!("reading");
-
         let mut returning: Option<Vec<u8>> = None;
-        for line in output_lines.map_while(Result::ok) {
-            let mut res = KaleidoResult::from(line.as_str());
-            if let Some(image_data) = res.result.take() {
-                tracing::debug!("got {} {:?}", image_data.len(), res);
-                let data: Vec<u8> = match format {
-                    "svg" | "eps" => image_data.as_bytes().to_vec(),
-                    _ => general_purpose::STANDARD.decode(image_data)?,
-                };
-                if let Some(dst) = dst {
-                    let mut dst = PathBuf::from(dst);
-                    dst.set_extension(format);
-                    tracing::debug!("writing {:?}", dst);
-                    let mut file = File::create(dst.as_path())?;
-                    file.write_all(&data)?;
-                    file.flush()?;
-                    break;
+        {
+            let mut output_lines =
+                BufReader::new(process.stdout.take().expect("taking stdout")).lines();
+
+            tracing::debug!("{:?}", output_lines.next());
+
+            tracing::debug!("sending chart");
+            {
+                let plot_data = PlotData::new(plotly_data, format, width, height, scale).to_json();
+                let mut process_stdin = process.stdin.take().expect("taking stdin");
+                process_stdin.write_all(plot_data.as_bytes())?;
+                process_stdin.flush()?;
+            }
+
+            tracing::debug!("reading");
+
+            for line in output_lines.map_while(Result::ok) {
+                let mut res = KaleidoResult::from(line.as_str());
+                if let Some(image_data) = res.result.take() {
+                    tracing::debug!("got {} {:?}", image_data.len(), res);
+                    let data: Vec<u8> = match format {
+                        "svg" | "eps" => image_data.as_bytes().to_vec(),
+                        _ => general_purpose::STANDARD.decode(image_data)?,
+                    };
+                    if let Some(dst) = dst {
+                        let mut dst = PathBuf::from(dst);
+                        dst.set_extension(format);
+                        tracing::debug!("writing {:?}", dst);
+                        let mut file = File::create(dst.as_path())?;
+                        file.write_all(&data)?;
+                        file.flush()?;
+                        break;
+                    } else {
+                        returning = Some(data);
+                    }
                 } else {
-                    returning = Some(data);
+                    tracing::debug!("got {:?}", res);
                 }
-            } else {
-                tracing::debug!("got {:?}", res);
             }
         }
 
